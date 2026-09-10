@@ -1,0 +1,70 @@
+
+# Customer Churn Intelligence Platform — .gitignore
+
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# Virtual environments
+venv/
+env/
+.venv/
+.env/
+ENV/
+
+# Environment variables (never commit secrets)
+.env
+.env.local
+*.env
+
+# Jupyter Notebooks checkpoints
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# Raw / sensitive data (never commit real customer data)
+data/raw/*.csv
+data/raw/*.xlsx
+data/raw/*.json
+data/processed/*.csv
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Model artifacts (too large for GitHub)
+*.pkl
+*.pickle
+*.joblib
+models/
+
+# Reports & figures (auto-generated)
+reports/figures/*.png
+reports/figures/*.jpg
+reports/figures/*.pdf
+!reports/figures/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp

@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customer Churn Intelligence Dashboard · Power BI</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg:       #F3F2F1;
+    --surface:  #FFFFFF;
+    --border:   #E1DFDD;
+    --text-1:   #252423;
+    --text-2:   #605E5C;
+    --text-3:   #A19F9D;
+    --accent:   #0078D4;
+    --critical: #D13438;
+    --high:     #E07025;
+    --medium:   #DFA842;
+    --low:      #107C10;
+    --teal:     #00897B;
+    --header:   #243A5E;
+    --sidebar:  #2C3E50;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text-1);
+    font-size: 13px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Top header bar ────────────────────────────────────── */
+  .header {
+    background: var(--header);
+    color: #fff;
+    padding: 0 16px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    z-index: 100;
+  }
+  .header-logo {
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 600; font-size: 14px; color: #fff;
+    border-right: 1px solid rgba(255,255,255,0.2);
+    padding-right: 16px;
+  }
+  .header-logo svg { width: 22px; height: 22px; }
+  .header-title { font-size: 13px; font-weight: 500; opacity: 0.9; flex: 1; }
+  .header-actions { display: flex; gap: 10px; align-items: center; }
+  .header-btn {
+    background: rgba(255,255,255,0.12); border: none; color: #fff;
+    padding: 5px 12px; border-radius: 4px; cursor: pointer;
+    font-size: 12px; font-family: inherit;
+    transition: background 0.15s;
+  }
+  .header-btn:hover { background: rgba(255,255,255,0.22); }
+  .header-btn.primary { background: var(--accent); }
+  .last-refresh { font-size: 11px; opacity: 0.65; }
+
+  /* ── Page tab nav ──────────────────────────────────────── */
+  .page-nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 2px;
+    padding: 0 16px;
+    flex-shrink: 0;
+  }
+  .page-tab {
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-2);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .page-tab:hover { color: var(--text-1); }
+  .page-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── Filter bar ────────────────────────────────────────── */
+  .filter-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .filter-label { font-size: 11px; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .filter-select {
+    font-family: inherit;
+    font-size: 12px;
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--text-1);
+    cursor: pointer;
+    outline: none;
+    min-width: 130px;
+  }
+  .filter-select:focus { border-color: var(--accent); }
+  .filter-divider { width: 1px; height: 20px; background: var(--border); }
+  .filter-clear {
+    font-size: 11px; color: var(--accent); cursor: pointer;
+    text-decoration: underline; margin-left: auto;
+  }
+  .filter-date { font-size: 11px; color: var(--text-2); margin-left: 4px; }
+
+  /* ── Main canvas ───────────────────────────────────────── */
+  .canvas {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 16px;
+    display: none;
+  }
+  .canvas.active { display: block; }
+
+  /* ── KPI Cards ──────────────────────────────────────────── */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+    transition: box-shadow 0.15s;
+    cursor: pointer;
+  }
+  .kpi-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent);
+  }
+  .kpi-card.critical::before { background: var(--critical); }
+  .kpi-card.warn::before { background: var(--high); }
+  .kpi-card.ok::before { background: var(--low); }
+  .kpi-label { font-size: 11px; color: var(--text-2); font-weight: 500; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .kpi-value { font-size: 26px; font-weight: 300; color: var(--text-1); line-height: 1; }
+  .kpi-value.red { color: var(--critical); }
+  .kpi-value.orange { color: var(--high); }
+  .kpi-value.green { color: var(--low); }
+  .kpi-delta {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 11px; margin-top: 6px; padding: 2px 6px;
+    border-radius: 3px; font-weight: 500;
+  }
+  .kpi-delta.up { background: #FDE7E9; color: var(--critical); }
+  .kpi-delta.down { background: #DFF6DD; color: var(--low); }
+  .kpi-delta.neutral { background: #F3F2F1; color: var(--text-2); }
+  .kpi-sub { font-size: 10px; color: var(--text-3); margin-top: 2px; }
+
+  /* ── Grid layouts ────────────────────────────────────────── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .grid-3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .grid-31 { display: grid; grid-template-columns: 3fr 1fr; gap: 10px; margin-bottom: 14px; }
+
+  /* ── Chart panels ─────────────────────────────────────────── */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 11px 14px 9px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .panel-title { font-size: 12px; font-weight: 600; color: var(--text-1); }
+  .panel-subtitle { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+  .panel-body { padding: 12px 14px; }
+  .panel-actions { display: flex; gap: 6px; }
+  .icon-btn {
+    width: 24px; height: 24px; border: none; background: none;
+    cursor: pointer; color: var(--text-3); border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; transition: background 0.12s;
+  }
+  .icon-btn:hover { background: var(--bg); color: var(--text-2); }
+
+  /* ── Chart canvases ─────────────────────────────────────── */
+  .chart-wrap { position: relative; }
+  .chart-wrap canvas { display: block; }
+
+  /* ── Cohort heatmap ──────────────────────────────────────── */
+  .cohort-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .cohort-table th {
+    padding: 5px 6px; text-align: center; font-weight: 600;
+    color: var(--text-2); background: var(--bg); font-size: 10px;
+  }
+  .cohort-table th:first-child { text-align: left; min-width: 64px; }
+  .cohort-table td {
+    padding: 4px 2px; text-align: center;
+    font-weight: 500; font-size: 11px; border: 1px solid var(--border);
+  }
+  .cohort-table td:first-child { text-align: left; padding-left: 6px; color: var(--text-2); font-weight: 400; }
+
+  /* ── Risk register table ─────────────────────────────────── */
+  .register-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .register-table th {
+    padding: 8px 10px; text-align: left; font-weight: 600;
+    color: var(--text-2); background: var(--bg); font-size: 11px;
+    border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  .register-table td {
+    padding: 8px 10px; border-bottom: 1px solid var(--border);
+    color: var(--text-1);
+  }
+  .register-table tr:hover td { background: #F8F9FA; }
+  .risk-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 12px;
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .risk-badge.critical { background: #FDE7E9; color: var(--critical); }
+  .risk-badge.high     { background: #FEF0E6; color: var(--high); }
+  .risk-badge.medium   { background: #FFF8DC; color: #B8860B; }
+  .risk-badge.low      { background: #DFF6DD; color: var(--low); }
+  .prob-bar-wrap { display: flex; align-items: center; gap: 6px; }
+  .prob-bar { height: 6px; border-radius: 3px; background: var(--border); flex: 1; overflow: hidden; }
+  .prob-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+  .prob-val { font-size: 11px; font-weight: 600; min-width: 30px; text-align: right; }
+
+  /* ── Donut legend ──────────────────────────────────────── */
+  .donut-legend { display: flex; flex-direction: column; gap: 8px; padding: 8px 0; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .legend-name { flex: 1; color: var(--text-2); }
+  .legend-val { font-weight: 600; color: var(--text-1); }
+  .legend-pct { color: var(--text-3); }
+
+  /* ── Waterfall labels ──────────────────────────────────── */
+  .wf-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .wf-label { font-size: 11px; color: var(--text-2); width: 90px; text-align: right; flex-shrink: 0; }
+  .wf-bar-wrap { flex: 1; height: 22px; position: relative; }
+  .wf-bar { height: 100%; border-radius: 3px; display: flex; align-items: center; padding: 0 6px; }
+  .wf-val { font-size: 11px; font-weight: 600; color: #fff; white-space: nowrap; }
+
+  /* ── Action centre ─────────────────────────────────────── */
+  .action-item {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 8px;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .action-item:hover { border-color: var(--accent); box-shadow: 0 1px 6px rgba(0,0,0,0.08); }
+  .action-company { font-weight: 600; font-size: 12px; }
+  .action-detail { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+  .action-mrr { font-size: 13px; font-weight: 700; color: var(--critical); text-align: right; }
+  .action-btn {
+    padding: 5px 12px; border-radius: 4px; border: none;
+    font-size: 11px; font-weight: 600; cursor: pointer;
+    background: var(--accent); color: #fff; font-family: inherit;
+    transition: opacity 0.15s; white-space: nowrap;
+  }
+  .action-btn:hover { opacity: 0.85; }
+
+  /* ── Footer bar ────────────────────────────────────────── */
+  .footer {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 6px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-3);
+    flex-shrink: 0;
+  }
+
+  /* ── Scrollbar ────────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── Live indicator ───────────────────────────────────── */
+  .live-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #107C10; display: inline-block;
+    margin-right: 5px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.5; transform: scale(0.85); }
+  }
+
+  /* ── Animated number counter ──────────────────────────── */
+  .animated-num { transition: all 0.4s; }
+</style>
+</head>
+<body>
+
+<!-- ─────────────────────────── HEADER ─────────────────────────── -->
+<header class="header">
+  <div class="header-logo">
+    <svg viewBox="0 0 24 24" fill="none">
+      <rect x="2" y="2" width="9" height="9" rx="1" fill="#F2C811"/>
+      <rect x="13" y="2" width="9" height="9" rx="1" fill="#F2C811" opacity="0.6"/>
+      <rect x="2" y="13" width="9" height="9" rx="1" fill="#F2C811" opacity="0.6"/>
+      <rect x="13" y="13" width="9" height="9" rx="1" fill="#F2C811" opacity="0.35"/>
+    </svg>
+    Power BI
+  </div>
+  <div class="header-title">Customer Churn Intelligence &amp; Revenue Recovery Platform</div>
+  <div class="header-actions">
+    <span class="last-refresh"><span class="live-dot"></span>Live · Refreshed 2 min ago</span>
+    <button class="header-btn" onclick="simulateRefresh()">⟳ Refresh</button>
+    <button class="header-btn primary">Share ↗</button>
+  </div>
+</header>
+
+<!-- ─────────────────────────── PAGE TABS ─────────────────────────── -->
+<nav class="page-nav">
+  <div class="page-tab active" onclick="switchPage(0, this)">📊 Executive Summary</div>
+  <div class="page-tab" onclick="switchPage(1, this)">⚠️ Churn Risk Register</div>
+  <div class="page-tab" onclick="switchPage(2, this)">📈 Cohort &amp; Retention</div>
+  <div class="page-tab" onclick="switchPage(3, this)">🎯 Recovery Action Centre</div>
+</nav>
+
+<!-- ─────────────────────────── FILTER BAR ─────────────────────────── -->
+<div class="filter-bar">
+  <span class="filter-label">Filters</span>
+  <select class="filter-select" onchange="applyFilter()">
+    <option>All Segments</option>
+    <option>SMB</option>
+    <option>Mid-Market</option>
+    <option>Enterprise</option>
+  </select>
+  <select class="filter-select" onchange="applyFilter()">
+    <option>All Industries</option>
+    <option>Technology</option>
+    <option>Finance</option>
+    <option>Healthcare</option>
+    <option>Retail</option>
+    <option>Manufacturing</option>
+  </select>
+  <select class="filter-select" onchange="applyFilter()">
+    <option>All Contract Types</option>
+    <option>Monthly</option>
+    <option>Annual</option>
+    <option>Multi-year</option>
+  </select>
+  <div class="filter-divider"></div>
+  <select class="filter-select" id="period-select" onchange="applyFilter()">
+    <option>Last 12 Months</option>
+    <option>Last 6 Months</option>
+    <option>Last 3 Months</option>
+    <option>YTD</option>
+  </select>
+  <span class="filter-date">Jan 2024 – Dec 2024</span>
+  <span class="filter-clear" onclick="clearFilters()">Clear all filters</span>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  PAGE 0 — EXECUTIVE SUMMARY                           -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="canvas active" id="page-0">
+
+  <!-- KPI Row -->
+  <div class="kpi-row">
+    <div class="kpi-card" onclick="switchPage(1, document.querySelectorAll('.page-tab')[1])">
+      <div class="kpi-label">Total Customers</div>
+      <div class="kpi-value animated-num" id="kpi-total">10,000</div>
+      <div class="kpi-delta neutral">▲ 342 vs prior period</div>
+      <div class="kpi-sub">Active subscriptions</div>
+    </div>
+    <div class="kpi-card critical" onclick="switchPage(1, document.querySelectorAll('.page-tab')[1])">
+      <div class="kpi-label">Monthly Churn Rate</div>
+      <div class="kpi-value red animated-num" id="kpi-churn">2.9%</div>
+      <div class="kpi-delta up">▲ 0.4pp vs prior month</div>
+      <div class="kpi-sub">Target: ≤ 2.5%</div>
+    </div>
+    <div class="kpi-card warn">
+      <div class="kpi-label">Revenue at Risk</div>
+      <div class="kpi-value orange animated-num" id="kpi-rar">$886K</div>
+      <div class="kpi-delta up">▲ $74K vs prior month</div>
+      <div class="kpi-sub">Monthly · Critical + High</div>
+    </div>
+    <div class="kpi-card ok">
+      <div class="kpi-label">Avg Churn Prob</div>
+      <div class="kpi-value animated-num" id="kpi-avg-prob">18.4%</div>
+      <div class="kpi-delta down">▼ 1.1pp vs prior month</div>
+      <div class="kpi-sub">Model-predicted · all accounts</div>
+    </div>
+    <div class="kpi-card ok">
+      <div class="kpi-label">Recovery Rate</div>
+      <div class="kpi-value green animated-num" id="kpi-recovery">29%</div>
+      <div class="kpi-delta down">▲ 18pp vs baseline</div>
+      <div class="kpi-sub">Post-intervention saves</div>
+    </div>
+  </div>
+
+  <!-- Row 2: Churn trend + Risk distribution donut -->
+  <div class="grid-31">
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Monthly Churn Rate Trend — 24 Months</div>
+          <div class="panel-subtitle">Actual churn rate (%) with 3-month forecast band</div>
+        </div>
+        <div class="panel-actions">
+          <button class="icon-btn" title="Expand">⤢</button>
+          <button class="icon-btn" title="More options">⋯</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="chart-wrap" style="height:200px">
+          <canvas id="churnTrendChart"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Risk Distribution</div>
+          <div class="panel-subtitle">By tier · All segments</div>
+        </div>
+        <button class="icon-btn">⋯</button>
+      </div>
+      <div class="panel-body" style="display:flex;gap:12px;align-items:center;">
+        <div class="chart-wrap" style="height:160px;width:160px;flex-shrink:0;">
+          <canvas id="donutChart"></canvas>
+        </div>
+        <div class="donut-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--critical)"></div><div class="legend-name">Critical</div><div class="legend-val">420</div><div class="legend-pct">&nbsp;4.2%</div></div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--high)"></div><div class="legend-name">High</div><div class="legend-val">680</div><div class="legend-pct">&nbsp;6.8%</div></div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--medium)"></div><div class="legend-name">Medium</div><div class="legend-val">1,240</div><div class="legend-pct">&nbsp;12.4%</div></div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--low)"></div><div class="legend-name">Low</div><div class="legend-val">7,660</div><div class="legend-pct">&nbsp;76.6%</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: Top drivers + Revenue waterfall -->
+  <div class="grid-2">
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Top Churn Drivers — SHAP Feature Impact</div>
+          <div class="panel-subtitle">Mean |SHAP value| across all high-risk customers</div>
+        </div>
+        <button class="icon-btn">⋯</button>
+      </div>
+      <div class="panel-body">
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="driversChart"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">MRR Waterfall — Current Month</div>
+          <div class="panel-subtitle">New · Expansion · Contraction · Churn</div>
+        </div>
+        <button class="icon-btn">⋯</button>
+      </div>
+      <div class="panel-body">
+        <div style="padding-top:8px;">
+          <div class="wf-row">
+            <div class="wf-label">Opening MRR</div>
+            <div class="wf-bar-wrap"><div class="wf-bar" style="background:#0078D4;width:100%"><div class="wf-val">$3,240K</div></div></div>
+          </div>
+          <div class="wf-row">
+            <div class="wf-label">New Revenue</div>
+            <div class="wf-bar-wrap"><div class="wf-bar" style="background:#107C10;width:35%"><div class="wf-val">+$114K</div></div></div>
+          </div>
+          <div class="wf-row">
+            <div class="wf-label">Expansion</div>
+            <div class="wf-bar-wrap"><div class="wf-bar" style="background:#00897B;width:22%"><div class="wf-val">+$72K</div></div></div>
+          </div>
+          <div class="wf-row">
+            <div class="wf-label">Contraction</div>
+            <div class="wf-bar-wrap"><div class="wf-bar" style="background:#E07025;width:14%"><div class="wf-val">−$46K</div></div></div>
+          </div>
+          <div class="wf-row">
+            <div class="wf-label">Churn</div>
+            <div class="wf-bar-wrap"><div class="wf-bar" style="background:#D13438;width:28%"><div class="wf-val">−$93K</div></div></div>
+          </div>
+          <div class="wf-row" style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px;">
+            <div class="wf-label" style="font-weight:700;color:var(--text-1)">Closing MRR</div>
+            <div class="wf-bar-wrap"><div class="wf-bar" style="background:#243A5E;width:95%"><div class="wf-val">$3,287K</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page-0 -->
+
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  PAGE 1 — CHURN RISK REGISTER                         -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="canvas" id="page-1">
+  <div class="panel" style="margin-bottom:14px;">
+    <div class="panel-header">
+      <div>
+        <div class="panel-title">Customer Churn Risk Register</div>
+        <div class="panel-subtitle">Sorted by revenue at risk · Click any row to drill through to customer 360°</div>
+      </div>
+      <div class="panel-actions">
+        <select class="filter-select" style="font-size:11px;padding:4px 8px;" onchange="filterRegister(this.value)">
+          <option value="all">All Risk Tiers</option>
+          <option value="Critical">Critical only</option>
+          <option value="High">High only</option>
+          <option value="Medium">Medium only</option>
+        </select>
+        <button class="icon-btn">↓ Export</button>
+      </div>
+    </div>
+    <div class="panel-body" style="padding:0;">
+      <table class="register-table" id="risk-table">
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Segment</th>
+            <th>Industry</th>
+            <th>Contract</th>
+            <th>Monthly MRR</th>
+            <th>Churn Probability</th>
+            <th>Risk Tier</th>
+            <th>Top Driver</th>
+            <th>Revenue at Risk</th>
+          </tr>
+        </thead>
+        <tbody id="register-body"></tbody>
+      </table>
+    </div>
+  </div>
+  <!-- Churn probability distribution histogram -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">Churn Probability Distribution — All Customers</div>
+      <div class="panel-subtitle">Histogram · 10% bins</div>
+    </div>
+    <div class="panel-body">
+      <div class="chart-wrap" style="height:180px">
+        <canvas id="probDistChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  PAGE 2 — COHORT & RETENTION                          -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="canvas" id="page-2">
+  <div class="panel" style="margin-bottom:14px;">
+    <div class="panel-header">
+      <div class="panel-title">Monthly Cohort Retention Heatmap — 2024</div>
+      <div class="panel-subtitle">% of original cohort retained by month · Green = strong retention · Red = rapid churn</div>
+    </div>
+    <div class="panel-body" style="overflow-x:auto;">
+      <table class="cohort-table" id="cohort-table"></table>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Retention Curves by Segment</div>
+        <div class="panel-subtitle">Kaplan-Meier survival curves · 12-month horizon</div>
+      </div>
+      <div class="panel-body">
+        <div class="chart-wrap" style="height:200px">
+          <canvas id="survivalChart"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Churn Rate by Contract Type</div>
+        <div class="panel-subtitle">Monthly average · Current period</div>
+      </div>
+      <div class="panel-body">
+        <div class="chart-wrap" style="height:200px">
+          <canvas id="contractChurnChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  PAGE 3 — RECOVERY ACTION CENTRE                      -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="canvas" id="page-3">
+  <div class="kpi-row" style="grid-template-columns: repeat(4,1fr);">
+    <div class="kpi-card critical">
+      <div class="kpi-label">Accounts Needing Action</div>
+      <div class="kpi-value red">1,100</div>
+      <div class="kpi-delta up">Critical + High tier</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Actions Taken (MTD)</div>
+      <div class="kpi-value">814</div>
+      <div class="kpi-delta down">74% action rate ↑</div>
+    </div>
+    <div class="kpi-card ok">
+      <div class="kpi-label">Saves Confirmed</div>
+      <div class="kpi-value green">236</div>
+      <div class="kpi-delta down">29% recovery rate</div>
+    </div>
+    <div class="kpi-card ok">
+      <div class="kpi-label">Revenue Saved (MTD)</div>
+      <div class="kpi-value green">$274K</div>
+      <div class="kpi-delta down">↑ vs $49K baseline</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Priority Recovery Queue — Critical Accounts</div>
+        <div class="panel-subtitle">Ranked by revenue at risk · Next 48 hours</div>
+      </div>
+      <div class="panel-body" id="action-list" style="max-height:340px;overflow-y:auto;"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Recovery Campaign Performance</div>
+        <div class="panel-subtitle">Save rate by intervention type</div>
+      </div>
+      <div class="panel-body">
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="recoveryChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ─────────────────────────── FOOTER ─────────────────────────── -->
+<footer class="footer">
+  <div>📌 Customer Churn Intelligence Platform · Data as of Dec 31, 2024 · Model v1.0 · XGBoost (AUC-ROC: 0.923)</div>
+  <div>Built by [Your Name] · Python · SQL · Power BI · Excel · <a href="#" style="color:var(--accent);">GitHub</a> · <a href="#" style="color:var(--accent);">Kaggle</a></div>
+</footer>
+
+
+<!-- ═══════════════════════════ SCRIPTS ═══════════════════════════ -->
+<script>
+/* ── Page switching ──────────────────────────────────────────── */
+function switchPage(idx, tab) {
+  document.querySelectorAll('.canvas').forEach((c, i) => {
+    c.classList.toggle('active', i === idx);
+  });
+  document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+}
+
+/* ── Simulate live refresh ───────────────────────────────────── */
+function simulateRefresh() {
+  const variations = [
+    { churn: '3.1%', rar: '$912K', prob: '19.1%', recovery: '27%' },
+    { churn: '2.9%', rar: '$886K', prob: '18.4%', recovery: '29%' },
+    { churn: '2.7%', rar: '$854K', prob: '17.8%', recovery: '31%' },
+  ];
+  const v = variations[Math.floor(Math.random() * variations.length)];
+  document.getElementById('kpi-churn').textContent = v.churn;
+  document.getElementById('kpi-rar').textContent = v.rar;
+  document.getElementById('kpi-avg-prob').textContent = v.prob;
+  document.getElementById('kpi-recovery').textContent = v.recovery;
+}
+
+function applyFilter() { simulateRefresh(); }
+function clearFilters() {
+  document.querySelectorAll('.filter-select').forEach(s => s.selectedIndex = 0);
+  simulateRefresh();
+}
+
+/* ── Colour helpers ──────────────────────────────────────────── */
+const C = {
+  critical: '#D13438', high: '#E07025', medium: '#DFA842',
+  low: '#107C10', accent: '#0078D4', teal: '#00897B',
+  text2: '#605E5C', text3: '#A19F9D', bg: '#F3F2F1',
+};
+
+/* ════ CHART: Churn Trend ════════════════════════════════════════ */
+const months24 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec',
+                  'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const churnActual = [4.2,4.0,3.8,3.9,3.6,3.4,3.5,3.2,3.1,3.0,3.1,2.9,
+                     2.8,2.7,null,null,null,null,null,null,null,null,null,null];
+const churnForecast = [null,null,null,null,null,null,null,null,null,null,null,2.9,
+                       2.8,2.7,2.6,2.5,2.5,2.4,null,null,null,null,null,null];
+
+new Chart(document.getElementById('churnTrendChart'), {
+  type: 'line',
+  data: {
+    labels: months24,
+    datasets: [
+      { label: 'Actual Churn Rate', data: churnActual, borderColor: C.critical,
+        backgroundColor: 'rgba(209,52,56,0.08)', fill: true, tension: 0.35,
+        borderWidth: 2.5, pointRadius: 3, pointBackgroundColor: C.critical },
+      { label: 'Forecast', data: churnForecast, borderColor: C.critical,
+        borderDash: [6,4], fill: false, tension: 0.35, borderWidth: 1.8,
+        pointRadius: 2, pointBackgroundColor: C.critical, pointStyle: 'circle' },
+      { label: 'Target (2.5%)', data: new Array(24).fill(2.5),
+        borderColor: C.low, borderDash: [4,4], fill: false, borderWidth: 1,
+        pointRadius: 0 }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { position: 'top', labels: { font: { size: 11 }, boxWidth: 16, padding: 12 } },
+      tooltip: { bodyFont: { size: 11 } }
+    },
+    scales: {
+      x: { ticks: { font: { size: 10 }, color: C.text3 }, grid: { color: 'rgba(0,0,0,0.04)' } },
+      y: { ticks: { font: { size: 10 }, color: C.text3, callback: v => v+'%' },
+           grid: { color: 'rgba(0,0,0,0.04)' } }
+    }
+  }
+});
+
+/* ════ CHART: Risk Donut ═════════════════════════════════════════ */
+new Chart(document.getElementById('donutChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Critical', 'High', 'Medium', 'Low'],
+    datasets: [{
+      data: [420, 680, 1240, 7660],
+      backgroundColor: [C.critical, C.high, C.medium, C.low],
+      borderWidth: 2, borderColor: '#fff', hoverOffset: 6
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    cutout: '65%',
+    plugins: { legend: { display: false }, tooltip: { bodyFont: { size: 11 } } }
+  }
+});
+
+/* ════ CHART: SHAP Drivers ═══════════════════════════════════════ */
+const drivers = [
+  'Feature adoption rate','Contract type (monthly)','NPS score',
+  'Login frequency 30d','Payment delays 6m','Days since login',
+  'Support ticket volume','MRR trend 90d','CSM assigned',
+  'Resolution time avg'
+];
+const shapVals = [0.42, 0.38, 0.31, 0.27, 0.24, 0.21, 0.19, 0.17, 0.13, 0.11];
+const driverColors = shapVals.map(v => v > 0.30 ? C.critical : v > 0.20 ? C.high : C.medium);
+
+new Chart(document.getElementById('driversChart'), {
+  type: 'bar',
+  data: {
+    labels: drivers,
+    datasets: [{
+      label: 'Mean |SHAP value|',
+      data: shapVals,
+      backgroundColor: driverColors,
+      borderRadius: 3, borderSkipped: false,
+    }]
+  },
+  options: {
+    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { bodyFont: { size: 11 } } },
+    scales: {
+      x: { ticks: { font: { size: 10 }, color: C.text3 }, grid: { color: 'rgba(0,0,0,0.04)' } },
+      y: { ticks: { font: { size: 10 }, color: C.text2 }, grid: { display: false } }
+    }
+  }
+});
+
+/* ════ REGISTER TABLE ════════════════════════════════════════════ */
+const registerData = [
+  { company:'Nexus Analytics Corp', seg:'Enterprise', ind:'Technology', contract:'Monthly', mrr:12400, prob:0.84, tier:'Critical', driver:'Feature adoption < 20%', rar:10416 },
+  { company:'Bluewave Financial', seg:'Mid-Market', ind:'Finance', contract:'Monthly', mrr:8700, prob:0.78, tier:'Critical', driver:'3 payment delays (6m)', rar:6786 },
+  { company:'Apex Healthcare Ltd', seg:'Enterprise', ind:'Healthcare', contract:'Annual', mrr:11200, prob:0.71, tier:'Critical', driver:'NPS score: −45', rar:7952 },
+  { company:'ClearPath Retail', seg:'Mid-Market', ind:'Retail', contract:'Monthly', mrr:5600, prob:0.68, tier:'High', driver:'Login freq: 0.4/day', rar:3808 },
+  { company:'DataBridge Systems', seg:'SMB', ind:'Technology', contract:'Monthly', mrr:2100, prob:0.65, tier:'High', driver:'Support tickets: 9', rar:1365 },
+  { company:'Meridian Manufacturing', seg:'Mid-Market', ind:'Manufacturing', contract:'Annual', mrr:7800, prob:0.63, tier:'High', driver:'MRR trend: −18%', rar:4914 },
+  { company:'Solace Consulting', seg:'SMB', ind:'Finance', contract:'Monthly', mrr:1800, prob:0.61, tier:'High', driver:'Days since login: 52', rar:1098 },
+  { company:'GreenLeaf Retail Co', seg:'SMB', ind:'Retail', contract:'Monthly', mrr:980, prob:0.58, tier:'High', driver:'CSAT: 1.9 avg', rar:568 },
+  { company:'Pinnacle Tech Group', seg:'Enterprise', ind:'Technology', contract:'Annual', mrr:14600, prob:0.44, tier:'Medium', driver:'Renewal due in 60d', rar:6424 },
+  { company:'Summit Finance Grp', seg:'Mid-Market', ind:'Finance', contract:'Annual', mrr:6200, prob:0.38, tier:'Medium', driver:'Feature adoption 28%', rar:2356 },
+];
+
+function buildRegister(filterTier='all') {
+  const tbody = document.getElementById('register-body');
+  tbody.innerHTML = '';
+  const filtered = filterTier === 'all' ? registerData : registerData.filter(d => d.tier === filterTier);
+  filtered.forEach(d => {
+    const tierClass = d.tier.toLowerCase();
+    const pct = Math.round(d.prob * 100);
+    const barColor = d.tier === 'Critical' ? C.critical : d.tier === 'High' ? C.high : C.medium;
+    tbody.innerHTML += `
+      <tr style="cursor:pointer" onclick="alert('Customer 360° drill-through: ${d.company}\\nChurn Probability: ${pct}%\\nTop Driver: ${d.driver}\\nRecommended Action: Immediate CSM outreach')">
+        <td><strong>${d.company}</strong></td>
+        <td>${d.seg}</td>
+        <td>${d.ind}</td>
+        <td>${d.contract}</td>
+        <td>$${d.mrr.toLocaleString()}</td>
+        <td>
+          <div class="prob-bar-wrap">
+            <div class="prob-bar"><div class="prob-bar-fill" style="width:${pct}%;background:${barColor}"></div></div>
+            <div class="prob-val" style="color:${barColor}">${pct}%</div>
+          </div>
+        </td>
+        <td><span class="risk-badge ${tierClass}">${d.tier}</span></td>
+        <td style="font-size:11px;color:${C.text2}">${d.driver}</td>
+        <td style="font-weight:700;color:${barColor}">$${d.rar.toLocaleString()}</td>
+      </tr>`;
+  });
+}
+function filterRegister(tier) { buildRegister(tier); }
+buildRegister();
+
+/* ════ CHART: Prob Distribution ══════════════════════════════════ */
+new Chart(document.getElementById('probDistChart'), {
+  type: 'bar',
+  data: {
+    labels: ['0–10%','10–20%','20–30%','30–40%','40–50%','50–60%','60–70%','70–80%','80–90%','90–100%'],
+    datasets: [{
+      label: 'Customers',
+      data: [3820, 2640, 1200, 820, 420, 420, 320, 200, 100, 60],
+      backgroundColor: ['#107C10','#107C10','#DFA842','#DFA842','#DFA842','#E07025','#E07025','#D13438','#D13438','#D13438'],
+      borderRadius: 3
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { bodyFont: { size: 11 } } },
+    scales: {
+      x: { ticks: { font: { size: 10 }, color: C.text3 } },
+      y: { ticks: { font: { size: 10 }, color: C.text3 } }
+    }
+  }
+});
+
+/* ════ COHORT TABLE ══════════════════════════════════════════════ */
+function heatColor(v) {
+  if (v === null) return '#F3F2F1';
+  if (v >= 85) return '#DFF6DD';
+  if (v >= 70) return '#E6F3DD';
+  if (v >= 55) return '#FFF8DC';
+  if (v >= 40) return '#FEF0E6';
+  return '#FDE7E9';
+}
+function textColor(v) {
+  if (v === null) return C.text3;
+  if (v >= 70) return '#107C10';
+  if (v >= 55) return '#B8860B';
+  return '#D13438';
+}
+
+const cohortData = [
+  { month: 'Jan 2024', data: [100, 91, 84, 78, 73, 68, 64, 61, 58, 56, 54, 52] },
+  { month: 'Feb 2024', data: [100, 92, 85, 79, 74, 70, 66, 63, 60, 58, 56] },
+  { month: 'Mar 2024', data: [100, 90, 83, 77, 72, 68, 64, 61, 58, 56] },
+  { month: 'Apr 2024', data: [100, 93, 87, 82, 77, 73, 69, 66, 63] },
+  { month: 'May 2024', data: [100, 89, 82, 76, 71, 66, 62, 59] },
+  { month: 'Jun 2024', data: [100, 91, 85, 79, 74, 70, 66] },
+  { month: 'Jul 2024', data: [100, 93, 87, 82, 77, 73] },
+  { month: 'Aug 2024', data: [100, 92, 86, 80, 75] },
+  { month: 'Sep 2024', data: [100, 91, 84, 79] },
+  { month: 'Oct 2024', data: [100, 93, 87] },
+  { month: 'Nov 2024', data: [100, 92] },
+  { month: 'Dec 2024', data: [100] },
+];
+const maxCols = 12;
+let tableHTML = '<thead><tr><th>Cohort</th>';
+for (let i = 0; i < maxCols; i++) tableHTML += `<th>M${i}</th>`;
+tableHTML += '</tr></thead><tbody>';
+cohortData.forEach(row => {
+  tableHTML += `<tr><td>${row.month}</td>`;
+  for (let i = 0; i < maxCols; i++) {
+    const v = i < row.data.length ? row.data[i] : null;
+    const bg = heatColor(v); const tc = textColor(v);
+    tableHTML += v !== null
+      ? `<td style="background:${bg};color:${tc}">${v}%</td>`
+      : `<td style="background:#F3F2F1;color:#C8C6C4">—</td>`;
+  }
+  tableHTML += '</tr>';
+});
+tableHTML += '</tbody>';
+document.getElementById('cohort-table').innerHTML = tableHTML;
+
+/* ════ CHART: Survival Curves ════════════════════════════════════ */
+const survivalMonths = [0,1,2,3,4,5,6,7,8,9,10,11,12];
+new Chart(document.getElementById('survivalChart'), {
+  type: 'line',
+  data: {
+    labels: survivalMonths.map(m => `M${m}`),
+    datasets: [
+      { label: 'Enterprise', data: [100,97,94,92,90,88,86,85,83,82,81,80,79], borderColor: C.accent, tension: 0.3, borderWidth: 2.5, pointRadius: 2, fill: false },
+      { label: 'Mid-Market', data: [100,95,90,86,82,79,76,73,71,69,67,65,64], borderColor: C.teal, tension: 0.3, borderWidth: 2.5, pointRadius: 2, fill: false },
+      { label: 'SMB',        data: [100,91,83,76,71,66,62,58,55,52,50,48,46], borderColor: C.high, tension: 0.3, borderWidth: 2.5, pointRadius: 2, fill: false },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', labels: { font: { size: 11 }, boxWidth: 14 } }, tooltip: { bodyFont: { size: 11 } } },
+    scales: {
+      x: { ticks: { font: { size: 10 }, color: C.text3 } },
+      y: { min: 40, max: 100, ticks: { font: { size: 10 }, color: C.text3, callback: v => v+'%' } }
+    }
+  }
+});
+
+/* ════ CHART: Contract Churn ══════════════════════════════════════ */
+new Chart(document.getElementById('contractChurnChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Monthly', 'Annual', 'Multi-year'],
+    datasets: [{
+      label: 'Monthly Churn Rate',
+      data: [8.7, 2.4, 0.9],
+      backgroundColor: [C.critical, C.medium, C.low],
+      borderRadius: 4, barThickness: 50,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { bodyFont: { size: 11 }, callbacks: { label: ctx => ` ${ctx.raw}% churn rate` } } },
+    scales: {
+      x: { ticks: { font: { size: 11 }, color: C.text2 } },
+      y: { ticks: { font: { size: 10 }, color: C.text3, callback: v => v+'%' }, max: 12 }
+    }
+  }
+});
+
+/* ════ ACTION CENTRE ═════════════════════════════════════════════ */
+const actionItems = [
+  { company:'Nexus Analytics Corp', detail:'Feature adoption 19% · NPS −32 · 0 logins (14d)', mrr:'$10,416', action:'Schedule Call' },
+  { company:'Bluewave Financial', detail:'3 payment delays · Critical ticket open 8d', mrr:'$6,786', action:'Retention Offer' },
+  { company:'Apex Healthcare Ltd', detail:'NPS −45 · Feature adoption 22% · Monthly contract', mrr:'$7,952', action:'Executive Outreach' },
+  { company:'ClearPath Retail', detail:'Login freq 0.4/day · Down from 4.2/day (60d ago)', mrr:'$3,808', action:'Health Check' },
+  { company:'DataBridge Systems', detail:'9 support tickets · Avg resolution 11.4 days', mrr:'$1,365', action:'CSM Outreach' },
+];
+const actionList = document.getElementById('action-list');
+actionItems.forEach(a => {
+  actionList.innerHTML += `
+    <div class="action-item">
+      <div>
+        <div class="action-company">${a.company}</div>
+        <div class="action-detail">${a.detail}</div>
+      </div>
+      <div class="action-mrr">${a.mrr}/mo at risk</div>
+      <button class="action-btn" onclick="this.textContent='✓ Actioned';this.style.background='#107C10'">${a.action}</button>
+    </div>`;
+});
+
+/* ════ CHART: Recovery Performance ═══════════════════════════════ */
+new Chart(document.getElementById('recoveryChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Exec outreach','CSM health check','Retention offer','Feature coaching','Auto-email nudge','No intervention'],
+    datasets: [{
+      label: 'Save Rate',
+      data: [44, 38, 33, 27, 14, 4],
+      backgroundColor: [C.low, C.teal, C.accent, '#5B9BD5', C.medium, C.text3],
+      borderRadius: 3, barThickness: 28
+    }]
+  },
+  options: {
+    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.raw}% save rate` } } },
+    scales: {
+      x: { ticks: { font: { size: 10 }, color: C.text3, callback: v => v+'%' }, max: 50 },
+      y: { ticks: { font: { size: 10 }, color: C.text2 } }
+    }
+  }
+});
+
+</script>
+</body>
+</html>

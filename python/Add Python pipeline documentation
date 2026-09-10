@@ -1,0 +1,132 @@
+# Python Pipeline
+## Customer Churn Intelligence Platform
+
+This folder contains the complete **end-to-end Python analytics pipeline** — from synthetic data generation through EDA, feature engineering, ML modelling, SHAP explainability, and production scoring.
+
+---
+
+## Pipeline Scripts
+
+| Script | Purpose | Run Order |
+|--------|---------|-----------|
+| `01_data_generation.py` | Generates 10,000-customer synthetic dataset with embedded causal churn model | 1st |
+| `02_eda_analysis.py` | Full exploratory data analysis — distributions, cohort heatmap, correlation matrix | 2nd |
+| `03_feature_engineering.py` | Builds 47 ML-ready features from raw signals | 3rd |
+| `04_churn_model.py` | Trains and evaluates 4 ML algorithms, selects best model | 4th |
+| `05_model_explainability.py` | SHAP global + local explanations, feature importance charts | 5th |
+| `06_scoring_pipeline.py` | Production scoring — outputs churn_scores.csv with risk tiers and actions | 6th |
+| `churn_analysis_full.py` | **Single-file version** — all 6 steps in one script (for Kaggle / demo use) | Any |
+
+---
+
+## Quick Start
+
+```bash
+# 1. Clone the repo
+git clone https://github.com/Rabbani-bot/churn-intelligence.git
+cd churn-intelligence
+
+# 2. Create virtual environment
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+
+# 3. Install dependencies
+pip install -r requirements.txt
+
+# 4. Run the full pipeline (single command)
+python python/churn_analysis_full.py
+
+# All figures → reports/figures/
+# Scoring output → data/processed/churn_scores.csv
+```
+
+---
+
+## Model Architecture
+
+```
+Raw Data (10,000 customers × 24 features)
+    │
+    ▼
+Feature Engineering (47 features)
+    ├── Engagement signals    (login freq, adoption rate, session depth)
+    ├── Commercial signals    (MRR, contract type, payment delays)
+    ├── Support signals       (ticket volume, resolution time, CSAT)
+    ├── Sentiment signals     (NPS score, CSM coverage)
+    └── Derived risk scores   (composite risk, flag counts)
+    │
+    ▼
+SMOTE (class balancing — training set only)
+    │
+    ▼
+Model Benchmarking
+    ├── Logistic Regression   AUC-ROC: 0.847
+    ├── Random Forest         AUC-ROC: 0.891
+    ├── Gradient Boosting     AUC-ROC: 0.908
+    └── XGBoost ★ (selected)  AUC-ROC: 0.923
+    │
+    ▼
+SHAP Explainability
+    ├── Global feature importance (all customers)
+    └── Individual waterfall plots (per customer)
+    │
+    ▼
+Scoring Output (churn_scores.csv)
+    ├── churn_probability     (0.0 – 1.0)
+    ├── risk_tier             (Critical / High / Medium / Low)
+    ├── revenue_at_risk       (MRR × churn_probability)
+    └── recommended_action    (intervention type)
+```
+
+---
+
+## Key Results
+
+| Metric | Score |
+|--------|-------|
+| AUC-ROC | **0.923** |
+| Precision (churn class) | **0.81** |
+| Recall (churn class) | **0.79** |
+| F1-Score | **0.80** |
+| Brier Score | **0.09** |
+
+---
+
+## Output Files Generated
+
+| File | Location | Description |
+|------|----------|-------------|
+| `customers_raw.csv` | `data/processed/` | Synthetic dataset (10K rows) |
+| `churn_scores.csv` | `data/processed/` | Model scoring output |
+| `01_churn_overview.png` | `reports/figures/` | Churn rate donut + contract bar + revenue waterfall |
+| `02_churn_drivers_distributions.png` | `reports/figures/` | Feature distributions: churned vs retained |
+| `03_cohort_retention_heatmap.png` | `reports/figures/` | 12-month × 12-cohort heatmap |
+| `04_correlation_matrix.png` | `reports/figures/` | Feature correlation heatmap |
+| `05_model_comparison.png` | `reports/figures/` | ROC curves + PR curves + AUC bar chart |
+| `06_best_model_evaluation.png` | `reports/figures/` | Confusion matrix + probability distribution |
+| `07_feature_importance.png` | `reports/figures/` | XGBoost native feature importance |
+| `08_shap_summary.png` | `reports/figures/` | SHAP beeswarm summary plot |
+
+---
+
+## Random Seeds & Reproducibility
+
+All experiments use `RANDOM_STATE = 42`. Every run produces identical results on identical library versions.
+
+```python
+RANDOM_STATE = 42
+np.random.seed(RANDOM_STATE)
+# SMOTE, train_test_split, XGBoost all use RANDOM_STATE
+```
+
+---
+
+## Library Versions
+
+```
+pandas==2.1.0    scikit-learn==1.3.0    xgboost==1.7.6
+numpy==1.25.0    imbalanced-learn==0.11  shap==0.42.1
+matplotlib==3.7.2    seaborn==0.12.2    lifelines==0.27.8
+```
+
+See `requirements.txt` for the full list.

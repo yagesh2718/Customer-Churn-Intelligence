@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customer Churn Intelligence &amp; Revenue Recovery Platform</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;500;600;700&display=swap');
+:root{
+  --bg:#F3F2F1;--surf:#fff;--bdr:#E1DFDD;
+  --t1:#252423;--t2:#605E5C;--t3:#A19F9D;
+  --acc:#0078D4;--crit:#D13438;--high:#E07025;--med:#DFA842;--low:#107C10;--teal:#00897B;
+  font-family:'Segoe UI',system-ui,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--t1);font-size:13px;display:flex;flex-direction:column;min-height:100vh;}
+
+/* ══ REAL POWER BI SERVICE — GLOBAL NAV BAR ══════════════════════════ */
+.pbi-nav{
+  background:#fff;height:48px;display:flex;align-items:center;
+  padding:0 8px;gap:0;flex-shrink:0;
+  border-bottom:1px solid #EDEBE9;
+  box-shadow:0 1px 2px rgba(0,0,0,.06);
+  z-index:300;position:relative;
+}
+.pbi-nav-hamburger{
+  width:40px;height:48px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;color:#323130;
+}
+.pbi-nav-hamburger svg{width:16px;height:16px;}
+.pbi-nav-logo{
+  display:flex;align-items:center;gap:5px;
+  padding:0 10px;height:100%;flex-shrink:0;cursor:pointer;
+  border-right:1px solid #EDEBE9;margin-right:0;
+}
+.pbi-logo-squares{display:grid;grid-template-columns:1fr 1fr;gap:2px;width:18px;height:18px;}
+.pbi-logo-squares span{display:block;background:#F2C811;border-radius:1px;}
+.pbi-logo-squares span:nth-child(2){opacity:.75;}
+.pbi-logo-squares span:nth-child(3){opacity:.55;}
+.pbi-logo-squares span:nth-child(4){opacity:.35;}
+.pbi-nav-brand{font-size:14px;font-weight:600;color:#252423;letter-spacing:-.01em;}
+.pbi-nav-search{
+  flex:1;max-width:480px;margin:0 16px;
+  display:flex;align-items:center;gap:8px;
+  background:#F3F2F1;border:1px solid transparent;border-radius:3px;
+  padding:0 10px;height:32px;cursor:text;
+}
+.pbi-nav-search svg{width:14px;height:14px;color:#605E5C;flex-shrink:0;}
+.pbi-nav-search span{font-size:12px;color:#A19F9D;}
+.pbi-nav-right{display:flex;align-items:center;margin-left:auto;gap:2px;}
+.pbi-nav-icon{
+  width:36px;height:36px;border:none;background:none;border-radius:3px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  color:#605E5C;transition:background .12s;
+}
+.pbi-nav-icon:hover{background:#F3F2F1;}
+.pbi-nav-icon svg{width:16px;height:16px;}
+.pbi-nav-avatar{
+  width:32px;height:32px;border-radius:50%;background:#0078D4;
+  color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;
+  justify-content:center;cursor:pointer;margin-left:6px;flex-shrink:0;
+  border:2px solid transparent;transition:border-color .12s;
+}
+.pbi-nav-avatar:hover{border-color:#0078D4;}
+
+/* ══ REPORT HEADER (breadcrumb + actions bar) ════════════════════════ */
+.pbi-rpt-bar{
+  background:#fff;height:40px;display:flex;align-items:center;
+  padding:0 16px;border-bottom:1px solid #EDEBE9;flex-shrink:0;gap:8px;
+}
+.pbi-rpt-breadcrumb{
+  display:flex;align-items:center;gap:5px;flex:1;min-width:0;
+  font-size:12px;
+}
+.pbi-rpt-breadcrumb .ws{color:#605E5C;white-space:nowrap;}
+.pbi-rpt-breadcrumb .chev{color:#C8C6C4;font-size:11px;}
+.pbi-rpt-breadcrumb .rname{color:#252423;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pbi-rpt-actions{display:flex;align-items:center;gap:4px;flex-shrink:0;}
+.pbi-rpt-btn{
+  display:flex;align-items:center;gap:5px;padding:4px 10px;
+  border:none;background:none;border-radius:3px;font-size:12px;
+  color:#323130;cursor:pointer;font-family:inherit;white-space:nowrap;
+  transition:background .1s;
+}
+.pbi-rpt-btn:hover{background:#F3F2F1;}
+.pbi-rpt-btn svg{width:14px;height:14px;}
+.pbi-rpt-sep{width:1px;height:20px;background:#EDEBE9;margin:0 2px;}
+.pbi-refresh-txt{font-size:11px;color:#A19F9D;display:flex;align-items:center;gap:5px;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#107C10;display:inline-block;animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.pbi-share-btn{
+  display:flex;align-items:center;gap:5px;background:#0078D4;color:#fff;
+  border:none;padding:5px 14px;border-radius:3px;font-size:12px;font-weight:500;
+  cursor:pointer;font-family:inherit;transition:background .12s;margin-left:4px;
+}
+.pbi-share-btn:hover{background:#106EBE;}
+
+/* ══ PAGE TABS — Power BI Service style ══════════════════════════════ */
+.pbi-pages{
+  background:#fff;display:flex;align-items:flex-end;
+  padding:0 0 0 12px;border-bottom:1px solid #EDEBE9;flex-shrink:0;
+  height:36px;gap:0;
+}
+.pbi-page-tab{
+  display:flex;align-items:center;gap:6px;
+  padding:0 16px;height:36px;cursor:pointer;
+  font-size:12px;font-weight:400;color:#605E5C;
+  border-bottom:3px solid transparent;white-space:nowrap;
+  transition:color .12s,border-color .12s;
+  position:relative;
+}
+.pbi-page-tab:hover{color:#252423;}
+.pbi-page-tab.active{color:#252423;font-weight:500;border-bottom-color:#F2C811;}
+.pbi-page-icon{width:14px;height:14px;flex-shrink:0;opacity:.7;}
+.pbi-page-tab.active .pbi-page-icon{opacity:1;}
+
+/* ══ FILTER BAR ═══════════════════════════════════════════════════ */
+.filter-bar{
+  background:#fff;border-bottom:1px solid #EDEBE9;
+  padding:7px 16px;display:flex;gap:10px;align-items:center;flex-shrink:0;
+}
+.filter-lbl{font-size:10px;color:#A19F9D;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-right:2px;}
+.filter-sel{
+  font-family:inherit;font-size:11px;padding:4px 8px;
+  border:1px solid #EDEBE9;border-radius:2px;background:#fff;
+  color:#252423;cursor:pointer;outline:none;
+}
+.filter-sel:focus{border-color:#0078D4;}
+.filter-date-pill{
+  display:flex;align-items:center;gap:5px;
+  background:#F3F2F1;border:1px solid #E1DFDD;border-radius:2px;
+  padding:4px 10px;font-size:11px;color:#605E5C;cursor:pointer;
+}
+.filter-date-pill svg{width:12px;height:12px;color:#A19F9D;}
+.filter-clear{font-size:11px;color:#0078D4;cursor:pointer;margin-left:auto;text-decoration:none;}
+.filter-clear:hover{text-decoration:underline;}
+
+/* ══ CANVAS / PAGES ═══════════════════════════════════════════════ */
+.canvas{flex:1;overflow-y:auto;padding:14px 16px;display:none;}
+.canvas.active{display:block;}
+
+/* ══ KPI CARDS ════════════════════════════════════════════════════ */
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px;}
+.kpi-card{background:#fff;border:1px solid var(--bdr);border-radius:2px;padding:14px 16px;position:relative;overflow:hidden;transition:box-shadow .15s;cursor:pointer;}
+.kpi-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.1);}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--acc);}
+.kpi-card.critical::before{background:var(--crit);}
+.kpi-card.warn::before{background:var(--high);}
+.kpi-card.ok::before{background:var(--low);}
+.kpi-lbl{font-size:10px;color:var(--t2);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;}
+.kpi-val{font-size:26px;font-weight:300;color:var(--t1);line-height:1;}
+.kpi-val.red{color:var(--crit);}.kpi-val.orange{color:var(--high);}.kpi-val.green{color:var(--low);}
+.kpi-delta{display:inline-flex;align-items:center;gap:3px;font-size:10px;margin-top:5px;padding:2px 6px;border-radius:2px;font-weight:500;}
+.kpi-delta.up{background:#FDE7E9;color:var(--crit);}
+.kpi-delta.down{background:#DFF6DD;color:var(--low);}
+.kpi-delta.neutral{background:#F3F2F1;color:var(--t2);}
+.kpi-sub{font-size:10px;color:var(--t3);margin-top:2px;}
+
+/* ══ GRID LAYOUTS ════════════════════════════════════════════════ */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.grid-31{display:grid;grid-template-columns:3fr 1fr;gap:10px;margin-bottom:14px;}
+
+/* ══ PANELS ══════════════════════════════════════════════════════ */
+.panel{background:#fff;border:1px solid var(--bdr);border-radius:2px;overflow:hidden;}
+.ph{padding:10px 14px 8px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;}
+.pt{font-size:12px;font-weight:600;color:var(--t1);}
+.ps{font-size:10px;color:var(--t3);margin-top:1px;}
+.pb{padding:12px 14px;}
+.pacts{display:flex;gap:4px;}
+.ib{width:22px;height:22px;border:none;background:none;cursor:pointer;color:var(--t3);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:13px;transition:background .1s;}
+.ib:hover{background:var(--bg);color:var(--t2);}
+.chart-wrap{position:relative;}.chart-wrap canvas{display:block;}
+
+/* ══ DONUT LEGEND ════════════════════════════════════════════════ */
+.donut-legend{display:flex;flex-direction:column;gap:8px;padding:4px 0;}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:11px;}
+.legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.legend-name{flex:1;color:var(--t2);}
+.legend-val{font-weight:600;color:var(--t1);}
+.legend-pct{color:var(--t3);}
+
+/* ══ WATERFALL ═══════════════════════════════════════════════════ */
+.wf-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.wf-label{font-size:10px;color:var(--t2);width:88px;text-align:right;flex-shrink:0;}
+.wf-bar-wrap{flex:1;height:22px;}
+.wf-bar{height:100%;border-radius:2px;display:flex;align-items:center;padding:0 7px;}
+.wf-val{font-size:10px;font-weight:600;color:#fff;white-space:nowrap;}
+
+/* ══ RISK REGISTER TABLE ═════════════════════════════════════════ */
+.reg-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.reg-tbl th{padding:8px 10px;text-align:left;font-weight:600;color:var(--t2);background:var(--bg);font-size:10px;border-bottom:1px solid var(--bdr);white-space:nowrap;}
+.reg-tbl td{padding:7px 10px;border-bottom:1px solid var(--bdr);color:var(--t1);}
+.reg-tbl tr:hover td{background:#F8FAFB;}
+.rbadge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+.rbadge.critical{background:#FDE7E9;color:var(--crit);}
+.rbadge.high{background:#FEF0E6;color:var(--high);}
+.rbadge.medium{background:#FFFBEC;color:#9A6E00;}
+.prob-bar-wrap{display:flex;align-items:center;gap:6px;}
+.prob-bar{height:6px;border-radius:3px;background:var(--bdr);flex:1;overflow:hidden;}
+.prob-bar-fill{height:100%;border-radius:3px;}
+.prob-val{font-size:10px;font-weight:600;min-width:28px;text-align:right;}
+
+/* ══ COHORT HEATMAP ══════════════════════════════════════════════ */
+.cohort-table{width:100%;border-collapse:collapse;font-size:11px;}
+.cohort-table th{padding:5px 5px;text-align:center;font-weight:600;color:var(--t2);background:var(--bg);font-size:9px;}
+.cohort-table th:first-child{text-align:left;min-width:62px;}
+.cohort-table td{padding:4px 2px;text-align:center;font-weight:500;font-size:10px;border:1px solid var(--bdr);}
+.cohort-table td:first-child{text-align:left;padding-left:6px;color:var(--t2);font-weight:400;}
+
+/* ══ ACTION CENTRE ═══════════════════════════════════════════════ */
+.action-item{padding:10px 12px;border:1px solid var(--bdr);border-radius:2px;margin-bottom:8px;display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s;}
+.action-item:hover{border-color:var(--acc);}
+.action-company{font-weight:600;font-size:12px;}
+.action-detail{font-size:10px;color:var(--t2);margin-top:2px;}
+.action-mrr{font-size:13px;font-weight:700;color:var(--crit);text-align:right;white-space:nowrap;}
+.action-btn{padding:5px 12px;border-radius:2px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:var(--acc);color:#fff;font-family:inherit;transition:opacity .15s;white-space:nowrap;}
+.action-btn:hover{opacity:.85;}
+
+/* ══ FOOTER ══════════════════════════════════════════════════════ */
+.pbi-footer{background:#fff;border-top:1px solid #EDEBE9;padding:6px 16px;display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--t3);flex-shrink:0;}
+.pbi-footer a{color:var(--acc);text-decoration:none;}.pbi-footer a:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════
+     POWER BI SERVICE — GLOBAL NAV BAR
+     ═══════════════════════════════════════════════════════════ -->
+<div class="pbi-nav">
+  <!-- Hamburger -->
+  <div class="pbi-nav-hamburger">
+    <svg viewBox="0 0 16 16" fill="currentColor"><rect y="2" width="16" height="1.5" rx=".75"/><rect y="7.25" width="16" height="1.5" rx=".75"/><rect y="12.5" width="16" height="1.5" rx=".75"/></svg>
+  </div>
+  <!-- Logo -->
+  <div class="pbi-nav-logo">
+    <div class="pbi-logo-squares"><span></span><span></span><span></span><span></span></div>
+    <span class="pbi-nav-brand">Power BI</span>
+  </div>
+  <!-- Search -->
+  <div class="pbi-nav-search">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
+    <span>Search</span>
+  </div>
+  <!-- Right icons -->
+  <div class="pbi-nav-right">
+    <button class="pbi-nav-icon" title="Notifications">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a5 5 0 0 0-5 5v2.5L1.5 10h13L13 8.5V6a5 5 0 0 0-5-5zm0 14a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2z"/></svg>
+    </button>
+    <button class="pbi-nav-icon" title="Help">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 11.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm1-3.5H7c0-1.5 2.5-2 2.5-3.5A1.5 1.5 0 0 0 6.5 6H5a3 3 0 0 1 6 0c0 2-2.5 2.5-2.5 3.5z"/></svg>
+    </button>
+    <button class="pbi-nav-icon" title="Settings">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M7.068.727c.243-.97 1.62-.97 1.864 0l.071.286a.96.96 0 0 0 1.622.434l.205-.211c.695-.719 1.888-.03 1.613.931l-.08.284a.96.96 0 0 0 1.187 1.187l.283-.08c.96-.275 1.65.918.931 1.613l-.211.205a.96.96 0 0 0 .434 1.622l.286.071c.97.243.97 1.62 0 1.864l-.286.071a.96.96 0 0 0-.434 1.622l.211.205c.719.695.03 1.888-.931 1.613l-.284-.08a.96.96 0 0 0-1.187 1.187l.08.283c.275.96-.918 1.65-1.613.931l-.205-.211a.96.96 0 0 0-1.622.434l-.071.286c-.243.97-1.62.97-1.864 0l-.071-.286a.96.96 0 0 0-1.622-.434l-.205.211c-.695.719-1.888.03-1.613-.931l.08-.284a.96.96 0 0 0-1.187-1.187l-.283.08c-.96.275-1.65-.918-.931-1.613l.211-.205a.96.96 0 0 0-.434-1.622l-.286-.071c-.97-.243-.97-1.62 0-1.864l.286-.071a.96.96 0 0 0 .434-1.622l-.211-.205c-.719-.695-.03-1.888.931-1.613l.284.08a.96.96 0 0 0 1.187-1.187l-.08-.283c-.275-.96.918-1.65 1.613-.931l.205.211a.96.96 0 0 0 1.622-.434l.071-.286zM8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg>
+    </button>
+    <div class="pbi-nav-avatar">YN</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     REPORT HEADER BAR (breadcrumb + actions)
+     ═══════════════════════════════════════════════════════════ -->
+<div class="pbi-rpt-bar">
+  <div class="pbi-rpt-breadcrumb">
+    <span class="ws">My Workspace</span>
+    <span class="chev">›</span>
+    <span class="rname">Customer Churn Intelligence &amp; Revenue Recovery Platform</span>
+  </div>
+  <div class="pbi-rpt-actions">
+    <span class="pbi-refresh-txt"><span class="live-dot"></span>&nbsp;Live &middot; Refreshed 2 min ago</span>
+    <div class="pbi-rpt-sep"></div>
+    <button class="pbi-rpt-btn" onclick="simulateRefresh()">
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 7A6 6 0 1 1 7 1a6 6 0 0 1 4.24 1.76"/><polyline points="9 1 13 1 13 5"/></svg>
+      Refresh
+    </button>
+    <button class="pbi-rpt-btn">
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 7h10M9 4l3 3-3 3"/></svg>
+      Export
+    </button>
+    <button class="pbi-share-btn">
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" width="13" height="13"><path d="M11 9a2 2 0 1 1-3.87-.65L4.87 6.35a2 2 0 1 1 0-2.7l2.26-2A2 2 0 1 1 11 3a2.07 2.07 0 0 1-.13.68l-2.26 2A2 2 0 0 1 9 7a2.07 2.07 0 0 1-.13.68l2.26 2A2 2 0 0 1 11 9z"/></svg>
+      Share
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PAGE NAVIGATION TABS — Power BI Service style
+     ═══════════════════════════════════════════════════════════ -->
+<div class="pbi-pages">
+  <div class="pbi-page-tab active" onclick="switchPage(0,this)">
+    <svg class="pbi-page-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1" y="1" width="5.5" height="5.5" rx=".5"/><rect x="7.5" y="1" width="5.5" height="5.5" rx=".5"/><rect x="1" y="7.5" width="5.5" height="5.5" rx=".5"/><rect x="7.5" y="7.5" width="5.5" height="5.5" rx=".5"/></svg>
+    Executive Summary
+  </div>
+  <div class="pbi-page-tab" onclick="switchPage(1,this)">
+    <svg class="pbi-page-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M7 1v6M4 13h6a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1z"/><circle cx="7" cy="4" r="1.5" fill="currentColor" stroke="none"/></svg>
+    Churn Risk Register
+  </div>
+  <div class="pbi-page-tab" onclick="switchPage(2,this)">
+    <svg class="pbi-page-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><polyline points="1 11 4 7 7 9 10 4 13 6"/><line x1="1" y1="13" x2="13" y2="13"/></svg>
+    Cohort &amp; Retention
+  </div>
+  <div class="pbi-page-tab" onclick="switchPage(3,this)">
+    <svg class="pbi-page-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="7" cy="7" r="6"/><polyline points="7 4 7 7 9 9"/></svg>
+    Recovery Action Centre
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     FILTER BAR
+     ═══════════════════════════════════════════════════════════ -->
+<div class="filter-bar">
+  <span class="filter-lbl">Filters</span>
+  <select class="filter-sel" onchange="applyFilter()">
+    <option>All Segments</option><option>SMB</option><option>Mid-Market</option><option>Enterprise</option>
+  </select>
+  <select class="filter-sel" onchange="applyFilter()">
+    <option>All Industries</option><option>Technology</option><option>Finance</option><option>Healthcare</option><option>Retail</option><option>Manufacturing</option>
+  </select>
+  <select class="filter-sel" onchange="applyFilter()">
+    <option>All Contract Types</option><option>Monthly</option><option>Annual</option><option>Multi-year</option>
+  </select>
+  <select class="filter-sel" id="period-sel" onchange="applyFilter();updateDate(this.value)">
+    <option value="12m">Last 12 Months</option>
+    <option value="6m">Last 6 Months</option>
+    <option value="3m">Last 3 Months</option>
+    <option value="ytd">Year to Date</option>
+  </select>
+  <div class="filter-date-pill">
+    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="1" y="2" width="10" height="9" rx="1"/><line x1="1" y1="5" x2="11" y2="5"/><line x1="4" y1="1" x2="4" y2="3"/><line x1="8" y1="1" x2="8" y2="3"/></svg>
+    <span id="date-range">Apr 2025 – Apr 2026</span>
+  </div>
+  <span class="filter-clear" onclick="clearFilters()">Clear all filters</span>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PAGE 0 — EXECUTIVE SUMMARY
+     ═══════════════════════════════════════════════════════════ -->
+<div class="canvas active" id="page-0">
+  <div class="kpi-row">
+    <div class="kpi-card"><div class="kpi-lbl">Total Customers</div><div class="kpi-val" id="kpi-total">10,000</div><div class="kpi-delta neutral">▲ 342 vs prior period</div><div class="kpi-sub">Active subscriptions</div></div>
+    <div class="kpi-card critical"><div class="kpi-lbl">Monthly Churn Rate</div><div class="kpi-val red" id="kpi-churn">2.9%</div><div class="kpi-delta up">▲ 0.4pp vs prior month</div><div class="kpi-sub">Target: ≤ 2.5%</div></div>
+    <div class="kpi-card warn"><div class="kpi-lbl">Revenue at Risk</div><div class="kpi-val orange" id="kpi-rar">$886K</div><div class="kpi-delta up">▲ $74K vs prior month</div><div class="kpi-sub">Monthly · Critical + High tier</div></div>
+    <div class="kpi-card ok"><div class="kpi-lbl">Avg Churn Probability</div><div class="kpi-val" id="kpi-prob">18.4%</div><div class="kpi-delta down">▼ 1.1pp vs prior month</div><div class="kpi-sub">Model-predicted · all accounts</div></div>
+    <div class="kpi-card ok"><div class="kpi-lbl">Recovery Rate</div><div class="kpi-val green" id="kpi-rec">29%</div><div class="kpi-delta down">▲ 18pp vs baseline</div><div class="kpi-sub">Post-intervention saves</div></div>
+  </div>
+  <div class="grid-31">
+    <div class="panel">
+      <div class="ph">
+        <div><div class="pt">Monthly Churn Rate Trend — 24 Months</div><div class="ps">Actual churn rate (%) with 3-month forecast band · Target 2.5%</div></div>
+        <div class="pacts"><button class="ib" title="Focus mode">⤢</button><button class="ib">⋯</button></div>
+      </div>
+      <div class="pb"><div class="chart-wrap" style="height:200px"><canvas id="churnTrendChart"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><div><div class="pt">Risk Distribution</div><div class="ps">By tier · All segments</div></div><button class="ib">⋯</button></div>
+      <div class="pb" style="display:flex;gap:12px;align-items:center;">
+        <div class="chart-wrap" style="height:160px;width:160px;flex-shrink:0;"><canvas id="donutChart"></canvas></div>
+        <div class="donut-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--crit)"></div><div class="legend-name">Critical</div><div class="legend-val">420</div><div class="legend-pct">&nbsp;4.2%</div></div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--high)"></div><div class="legend-name">High</div><div class="legend-val">680</div><div class="legend-pct">&nbsp;6.8%</div></div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--med)"></div><div class="legend-name">Medium</div><div class="legend-val">1,240</div><div class="legend-pct">&nbsp;12.4%</div></div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--low)"></div><div class="legend-name">Low</div><div class="legend-val">7,660</div><div class="legend-pct">&nbsp;76.6%</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="panel">
+      <div class="ph"><div><div class="pt">Top Churn Drivers — SHAP Feature Impact</div><div class="ps">Mean |SHAP value| across all high-risk customers</div></div><button class="ib">⋯</button></div>
+      <div class="pb"><div class="chart-wrap" style="height:220px"><canvas id="driversChart"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><div><div class="pt">MRR Waterfall — Current Month</div><div class="ps">New · Expansion · Contraction · Churn</div></div><button class="ib">⋯</button></div>
+      <div class="pb" style="padding-top:12px">
+        <div class="wf-row"><div class="wf-label">Opening MRR</div><div class="wf-bar-wrap"><div class="wf-bar" style="background:#0078D4;width:100%"><div class="wf-val">$3,240K</div></div></div></div>
+        <div class="wf-row"><div class="wf-label">New Revenue</div><div class="wf-bar-wrap"><div class="wf-bar" style="background:#107C10;width:35%"><div class="wf-val">+$114K</div></div></div></div>
+        <div class="wf-row"><div class="wf-label">Expansion</div><div class="wf-bar-wrap"><div class="wf-bar" style="background:#00897B;width:22%"><div class="wf-val">+$72K</div></div></div></div>
+        <div class="wf-row"><div class="wf-label">Contraction</div><div class="wf-bar-wrap"><div class="wf-bar" style="background:#E07025;width:14%"><div class="wf-val">−$46K</div></div></div></div>
+        <div class="wf-row"><div class="wf-label">Churn</div><div class="wf-bar-wrap"><div class="wf-bar" style="background:#D13438;width:28%"><div class="wf-val">−$93K</div></div></div></div>
+        <div class="wf-row" style="margin-top:10px;border-top:1px solid var(--bdr);padding-top:10px"><div class="wf-label" style="font-weight:700;color:var(--t1)">Closing MRR</div><div class="wf-bar-wrap"><div class="wf-bar" style="background:#1B3A6B;width:96%"><div class="wf-val">$3,287K</div></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PAGE 1 — CHURN RISK REGISTER
+     ═══════════════════════════════════════════════════════════ -->
+<div class="canvas" id="page-1">
+  <div class="panel" style="margin-bottom:12px">
+    <div class="ph">
+      <div><div class="pt">Customer Churn Risk Register</div><div class="ps">Sorted by revenue at risk · Click any row to drill through to customer 360°</div></div>
+      <div class="pacts">
+        <select class="filter-sel" style="font-size:10px" onchange="filterRegister(this.value)"><option value="all">All Risk Tiers</option><option value="Critical">Critical only</option><option value="High">High only</option><option value="Medium">Medium only</option></select>
+        <button class="ib" style="width:auto;padding:0 8px;font-size:11px">↓ Export</button>
+      </div>
+    </div>
+    <div style="padding:0;overflow-x:auto">
+      <table class="reg-tbl"><thead><tr>
+        <th>Company</th><th>Segment</th><th>Industry</th><th>Contract</th><th>Monthly MRR</th><th>Churn Probability</th><th>Risk Tier</th><th>Top Driver</th><th>Revenue at Risk</th>
+      </tr></thead><tbody id="register-body"></tbody></table>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ph"><div><div class="pt">Churn Probability Distribution — All Customers</div><div class="ps">Histogram · 10% bins · Colour encodes risk tier</div></div><button class="ib">⋯</button></div>
+    <div class="pb"><div class="chart-wrap" style="height:180px"><canvas id="probDistChart"></canvas></div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PAGE 2 — COHORT & RETENTION
+     ═══════════════════════════════════════════════════════════ -->
+<div class="canvas" id="page-2">
+  <div class="panel" style="margin-bottom:12px">
+    <div class="ph"><div><div class="pt">Monthly Cohort Retention Heatmap — 2025</div><div class="ps">% of original cohort retained by month · Green = strong retention · Red = rapid churn</div></div><button class="ib">⋯</button></div>
+    <div class="pb" style="overflow-x:auto"><table class="cohort-table" id="cohort-table"></table></div>
+  </div>
+  <div class="grid-2">
+    <div class="panel">
+      <div class="ph"><div><div class="pt">Retention Curves by Segment</div><div class="ps">Kaplan-Meier survival curves · 12-month horizon</div></div><button class="ib">⋯</button></div>
+      <div class="pb"><div class="chart-wrap" style="height:200px"><canvas id="survivalChart"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><div><div class="pt">Churn Rate by Contract Type</div><div class="ps">Monthly average · Current period</div></div><button class="ib">⋯</button></div>
+      <div class="pb"><div class="chart-wrap" style="height:200px"><canvas id="contractChurnChart"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PAGE 3 — RECOVERY ACTION CENTRE
+     ═══════════════════════════════════════════════════════════ -->
+<div class="canvas" id="page-3">
+  <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi-card critical"><div class="kpi-lbl">Accounts Needing Action</div><div class="kpi-val red">1,100</div><div class="kpi-delta up">Critical + High tier</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">Actions Taken (MTD)</div><div class="kpi-val">814</div><div class="kpi-delta down">74% action rate ↑</div></div>
+    <div class="kpi-card ok"><div class="kpi-lbl">Saves Confirmed</div><div class="kpi-val green">236</div><div class="kpi-delta down">29% recovery rate</div></div>
+    <div class="kpi-card ok"><div class="kpi-lbl">Revenue Saved (MTD)</div><div class="kpi-val green">$274K</div><div class="kpi-delta down">↑ vs $49K baseline</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="panel">
+      <div class="ph"><div><div class="pt">Priority Recovery Queue — Critical Accounts</div><div class="ps">Ranked by revenue at risk · Next 48 hours</div></div><button class="ib">⋯</button></div>
+      <div class="pb" id="action-list" style="max-height:340px;overflow-y:auto"></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><div><div class="pt">Recovery Campaign Performance</div><div class="ps">Save rate by intervention type</div></div><button class="ib">⋯</button></div>
+      <div class="pb"><div class="chart-wrap" style="height:220px"><canvas id="recoveryChart"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     FOOTER
+     ═══════════════════════════════════════════════════════════ -->
+<div class="pbi-footer">
+  <div>Customer Churn Intelligence Platform &middot; Model v1.0 &middot; XGBoost (AUC-ROC: 0.923) &middot; Last refreshed: 28 Apr 2026</div>
+  <div>Built by [Your Name] &middot; Python &middot; SQL &middot; Power BI &middot; Excel &middot; <a href="#">GitHub</a> &middot; <a href="#">Kaggle</a></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     SCRIPTS
+     ═══════════════════════════════════════════════════════════ -->
+<script>
+/* ── Page switching ──────────────────────────── */
+function switchPage(idx,tab){
+  document.querySelectorAll('.canvas').forEach((c,i)=>c.classList.toggle('active',i===idx));
+  document.querySelectorAll('.pbi-page-tab').forEach(t=>t.classList.remove('active'));
+  tab.classList.add('active');
+}
+
+/* ── Live refresh simulation ─────────────────── */
+const kpiSets=[
+  {churn:'2.9%',rar:'$886K',prob:'18.4%',rec:'29%'},
+  {churn:'3.1%',rar:'$912K',prob:'19.1%',rec:'27%'},
+  {churn:'2.7%',rar:'$854K',prob:'17.8%',rec:'31%'},
+];
+function simulateRefresh(){
+  const v=kpiSets[Math.floor(Math.random()*kpiSets.length)];
+  document.getElementById('kpi-churn').textContent=v.churn;
+  document.getElementById('kpi-rar').textContent=v.rar;
+  document.getElementById('kpi-prob').textContent=v.prob;
+  document.getElementById('kpi-rec').textContent=v.rec;
+}
+function applyFilter(){simulateRefresh();}
+function clearFilters(){
+  document.querySelectorAll('.filter-sel').forEach(s=>s.selectedIndex=0);
+  updateDate('12m');
+  simulateRefresh();
+}
+function updateDate(v){
+  const now=new Date(2026,3,28);
+  const mn=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let s=new Date(now);
+  if(v==='12m')s.setMonth(s.getMonth()-12);
+  else if(v==='6m')s.setMonth(s.getMonth()-6);
+  else if(v==='3m')s.setMonth(s.getMonth()-3);
+  else s=new Date(2026,0,1);
+  document.getElementById('date-range').textContent=`${mn[s.getMonth()]} ${s.getFullYear()} – ${mn[now.getMonth()]} ${now.getFullYear()}`;
+}
+
+/* ── Colours ─────────────────────────────────── */
+const C={crit:'#D13438',high:'#E07025',med:'#DFA842',low:'#107C10',acc:'#0078D4',teal:'#00897B',t2:'#605E5C',t3:'#A19F9D'};
+
+/* ── Churn Trend Chart ───────────────────────── */
+const mo24=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+new Chart(document.getElementById('churnTrendChart'),{
+  type:'line',
+  data:{labels:mo24,datasets:[
+    {label:'Actual Churn Rate',data:[4.2,4.0,3.8,3.9,3.6,3.4,3.5,3.2,3.1,3.0,3.1,2.9,2.8,2.7,null,null,null,null,null,null,null,null,null,null],borderColor:C.crit,backgroundColor:'rgba(209,52,56,.08)',fill:true,tension:.35,borderWidth:2.5,pointRadius:3,pointBackgroundColor:C.crit},
+    {label:'Forecast',data:[null,null,null,null,null,null,null,null,null,null,null,2.9,2.8,2.7,2.6,2.5,2.5,2.4,null,null,null,null,null,null],borderColor:C.crit,borderDash:[6,4],fill:false,tension:.35,borderWidth:1.8,pointRadius:2},
+    {label:'Target (2.5%)',data:new Array(24).fill(2.5),borderColor:C.low,borderDash:[4,4],fill:false,borderWidth:1,pointRadius:0}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:16,padding:12}},tooltip:{bodyFont:{size:11}}},scales:{x:{ticks:{font:{size:10},color:C.t3},grid:{color:'rgba(0,0,0,.04)'}},y:{ticks:{font:{size:10},color:C.t3,callback:v=>v+'%'},grid:{color:'rgba(0,0,0,.04)'}}}}
+});
+
+/* ── Donut Chart ─────────────────────────────── */
+new Chart(document.getElementById('donutChart'),{
+  type:'doughnut',
+  data:{labels:['Critical','High','Medium','Low'],datasets:[{data:[420,680,1240,7660],backgroundColor:[C.crit,C.high,C.med,C.low],borderWidth:2,borderColor:'#fff',hoverOffset:6}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false},tooltip:{bodyFont:{size:11}}}}
+});
+
+/* ── SHAP Drivers Chart ──────────────────────── */
+const drvLabels=['Feature adoption rate','Contract type (monthly)','NPS score','Login frequency 30d','Payment delays 6m','Days since login','Support ticket volume','MRR trend 90d','CSM assigned','Resolution time avg'];
+const drvVals=[0.42,0.38,0.31,0.27,0.24,0.21,0.19,0.17,0.13,0.11];
+new Chart(document.getElementById('driversChart'),{
+  type:'bar',
+  data:{labels:drvLabels,datasets:[{label:'Mean |SHAP value|',data:drvVals,backgroundColor:drvVals.map(v=>v>.30?C.crit:v>.20?C.high:C.med),borderRadius:2}]},
+  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{bodyFont:{size:11}}},scales:{x:{ticks:{font:{size:10},color:C.t3},grid:{color:'rgba(0,0,0,.04)'}},y:{ticks:{font:{size:10},color:C.t2},grid:{display:false}}}}
+});
+
+/* ── Risk Register ───────────────────────────── */
+const regData=[
+  {co:'Nexus Analytics Corp',seg:'Enterprise',ind:'Technology',ct:'Monthly',mrr:12400,p:.84,tier:'Critical',drv:'Feature adoption < 20%',rar:10416},
+  {co:'Bluewave Financial',seg:'Mid-Market',ind:'Finance',ct:'Monthly',mrr:8700,p:.78,tier:'Critical',drv:'3 payment delays (6m)',rar:6786},
+  {co:'Apex Healthcare Ltd',seg:'Enterprise',ind:'Healthcare',ct:'Annual',mrr:11200,p:.71,tier:'Critical',drv:'NPS score: −45',rar:7952},
+  {co:'ClearPath Retail',seg:'Mid-Market',ind:'Retail',ct:'Monthly',mrr:5600,p:.68,tier:'High',drv:'Login freq: 0.4/day',rar:3808},
+  {co:'DataBridge Systems',seg:'SMB',ind:'Technology',ct:'Monthly',mrr:2100,p:.65,tier:'High',drv:'Support tickets: 9',rar:1365},
+  {co:'Meridian Manufacturing',seg:'Mid-Market',ind:'Manufacturing',ct:'Annual',mrr:7800,p:.63,tier:'High',drv:'MRR trend: −18%',rar:4914},
+  {co:'Solace Consulting',seg:'SMB',ind:'Finance',ct:'Monthly',mrr:1800,p:.61,tier:'High',drv:'Days since login: 52',rar:1098},
+  {co:'GreenLeaf Retail Co',seg:'SMB',ind:'Retail',ct:'Monthly',mrr:980,p:.58,tier:'High',drv:'CSAT avg: 1.9',rar:568},
+  {co:'Pinnacle Tech Group',seg:'Enterprise',ind:'Technology',ct:'Annual',mrr:14600,p:.44,tier:'Medium',drv:'Renewal due in 60d',rar:6424},
+  {co:'Summit Finance Group',seg:'Mid-Market',ind:'Finance',ct:'Annual',mrr:6200,p:.38,tier:'Medium',drv:'Feature adoption 28%',rar:2356},
+];
+function buildRegister(f='all'){
+  const b=document.getElementById('register-body');b.innerHTML='';
+  (f==='all'?regData:regData.filter(d=>d.tier===f)).forEach(d=>{
+    const tc=d.tier.toLowerCase(),pct=Math.round(d.p*100);
+    const bc=d.tier==='Critical'?C.crit:d.tier==='High'?C.high:C.med;
+    b.innerHTML+=`<tr style="cursor:pointer" onclick="alert('Customer 360°: ${d.co}\\nChurn Probability: ${pct}%\\nTop Driver: ${d.drv}\\nAction: Immediate CSM outreach within 48h')">
+      <td><strong>${d.co}</strong></td><td>${d.seg}</td><td>${d.ind}</td><td>${d.ct}</td>
+      <td>$${d.mrr.toLocaleString()}</td>
+      <td><div class="prob-bar-wrap"><div class="prob-bar"><div class="prob-bar-fill" style="width:${pct}%;background:${bc}"></div></div><div class="prob-val" style="color:${bc}">${pct}%</div></div></td>
+      <td><span class="rbadge ${tc}">${d.tier}</span></td>
+      <td style="font-size:10px;color:${C.t2}">${d.drv}</td>
+      <td style="font-weight:700;color:${bc}">$${d.rar.toLocaleString()}</td>
+    </tr>`;
+  });
+}
+function filterRegister(t){buildRegister(t);}
+buildRegister();
+
+/* ── Prob Distribution Chart ─────────────────── */
+new Chart(document.getElementById('probDistChart'),{
+  type:'bar',
+  data:{labels:['0–10%','10–20%','20–30%','30–40%','40–50%','50–60%','60–70%','70–80%','80–90%','90–100%'],datasets:[{label:'Customers',data:[3820,2640,1200,820,420,420,320,200,100,60],backgroundColor:[C.low,C.low,C.med,C.med,C.med,C.high,C.high,C.crit,C.crit,C.crit],borderRadius:3}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{bodyFont:{size:11}}},scales:{x:{ticks:{font:{size:10},color:C.t3}},y:{ticks:{font:{size:10},color:C.t3}}}}
+});
+
+/* ── Cohort Heatmap ──────────────────────────── */
+const hc=v=>{if(v===null)return'#F3F2F1';if(v>=85)return'#DFF6DD';if(v>=70)return'#E6F3DD';if(v>=55)return'#FFF8DC';if(v>=40)return'#FEF0E6';return'#FDE7E9';};
+const tc2=v=>{if(v===null)return C.t3;if(v>=70)return'#107C10';if(v>=55)return'#B8860B';return'#D13438';};
+const cohortData=[
+  {m:'Jan 2025',d:[100,91,84,78,73,68,64,61,58,56,54,52]},
+  {m:'Feb 2025',d:[100,92,85,79,74,70,66,63,60,58,56]},
+  {m:'Mar 2025',d:[100,90,83,77,72,68,64,61,58,56]},
+  {m:'Apr 2025',d:[100,93,87,82,77,73,69,66,63]},
+  {m:'May 2025',d:[100,89,82,76,71,66,62,59]},
+  {m:'Jun 2025',d:[100,91,85,79,74,70,66]},
+  {m:'Jul 2025',d:[100,93,87,82,77,73]},
+  {m:'Aug 2025',d:[100,92,86,80,75]},
+  {m:'Sep 2025',d:[100,91,84,79]},
+  {m:'Oct 2025',d:[100,93,87]},
+  {m:'Nov 2025',d:[100,92]},
+  {m:'Dec 2025',d:[100]},
+];
+let th='<thead><tr><th>Cohort</th>';
+for(let i=0;i<12;i++)th+=`<th>M${i}</th>`;
+th+='</tr></thead><tbody>';
+cohortData.forEach(r=>{
+  th+=`<tr><td>${r.m}</td>`;
+  for(let i=0;i<12;i++){const v=i<r.d.length?r.d[i]:null;th+=v!==null?`<td style="background:${hc(v)};color:${tc2(v)}">${v}%</td>`:`<td style="background:#F3F2F1;color:#C8C6C4">—</td>`;}
+  th+='</tr>';
+});
+document.getElementById('cohort-table').innerHTML=th+'</tbody>';
+
+/* ── Survival Curves ─────────────────────────── */
+new Chart(document.getElementById('survivalChart'),{
+  type:'line',
+  data:{labels:[0,1,2,3,4,5,6,7,8,9,10,11,12].map(m=>`M${m}`),datasets:[
+    {label:'Enterprise',data:[100,97,94,92,90,88,86,85,83,82,81,80,79],borderColor:C.acc,tension:.3,borderWidth:2.5,pointRadius:2,fill:false},
+    {label:'Mid-Market',data:[100,95,90,86,82,79,76,73,71,69,67,65,64],borderColor:C.teal,tension:.3,borderWidth:2.5,pointRadius:2,fill:false},
+    {label:'SMB',data:[100,91,83,76,71,66,62,58,55,52,50,48,46],borderColor:C.high,tension:.3,borderWidth:2.5,pointRadius:2,fill:false},
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:14}},tooltip:{bodyFont:{size:11}}},scales:{x:{ticks:{font:{size:10},color:C.t3}},y:{min:40,max:100,ticks:{font:{size:10},color:C.t3,callback:v=>v+'%'}}}}
+});
+
+/* ── Contract Churn Chart ────────────────────── */
+new Chart(document.getElementById('contractChurnChart'),{
+  type:'bar',
+  data:{labels:['Monthly','Annual','Multi-year'],datasets:[{label:'Monthly Churn Rate',data:[8.7,2.4,0.9],backgroundColor:[C.crit,C.med,C.low],borderRadius:4,barThickness:50}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{bodyFont:{size:11},callbacks:{label:ctx=>` ${ctx.raw}% churn rate`}}},scales:{x:{ticks:{font:{size:11},color:C.t2}},y:{ticks:{font:{size:10},color:C.t3,callback:v=>v+'%'},max:12}}}
+});
+
+/* ── Action Centre ───────────────────────────── */
+const actions=[
+  {co:'Nexus Analytics Corp',de:'Feature adoption 19% · NPS −32 · 0 logins (14 days)',mrr:'$10,416',btn:'Schedule Call'},
+  {co:'Bluewave Financial',de:'3 payment delays · Critical ticket open 8 days',mrr:'$6,786',btn:'Retention Offer'},
+  {co:'Apex Healthcare Ltd',de:'NPS −45 · Feature adoption 22% · Monthly contract',mrr:'$7,952',btn:'Executive Outreach'},
+  {co:'ClearPath Retail',de:'Login freq 0.4/day · Down from 4.2/day (60 days ago)',mrr:'$3,808',btn:'Health Check'},
+  {co:'DataBridge Systems',de:'9 support tickets · Avg resolution 11.4 days',mrr:'$1,365',btn:'CSM Outreach'},
+];
+const al=document.getElementById('action-list');
+actions.forEach(a=>{
+  al.innerHTML+=`<div class="action-item"><div><div class="action-company">${a.co}</div><div class="action-detail">${a.de}</div></div><div class="action-mrr">${a.mrr}/mo at risk</div><button class="action-btn" onclick="this.textContent='✓ Actioned';this.style.background='#107C10'">${a.btn}</button></div>`;
+});
+
+/* ── Recovery Chart ──────────────────────────── */
+new Chart(document.getElementById('recoveryChart'),{
+  type:'bar',
+  data:{labels:['Exec outreach','CSM health check','Retention offer','Feature coaching','Auto-email nudge','No intervention'],datasets:[{label:'Save Rate',data:[44,38,33,27,14,4],backgroundColor:[C.low,C.teal,C.acc,'#5B9BD5',C.med,C.t3],borderRadius:3,barThickness:28}]},
+  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.raw}% save rate`}}},scales:{x:{ticks:{font:{size:10},color:C.t3,callback:v=>v+'%'},max:50},y:{ticks:{font:{size:10},color:C.t2}}}}
+});
+</script>
+</body>
+</html>

@@ -81,13 +81,4 @@ Applying the scoring model to the 10,000-customer dataset successfully categoriz
 | Avg. days to churn detection | 47 days | 8 days | **−83%** |
 | Annual revenue retained | $0 | $1.1M | **New retention** |
 
-### Executive Dashboard
-<!-- ADD POWER BI DASHBOARD SCREENSHOT HERE -->
 
----
-
-## 🛠️ Reproducibility
-All random seeds are fixed (`RANDOM_STATE = 42`). The synthetic data generator produces the exact same dataset every run. Results are fully reproducible.
-
-**Author:** [Your Name]
-**License:** MIT License
